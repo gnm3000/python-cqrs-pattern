@@ -36,7 +36,7 @@ export default function Home() {
     try {
       const res = await fetch(`${API_URL}/employees`);
       if (!res.ok) {
-        throw new Error('No se pudieron cargar los empleados');
+        throw new Error('Could not load employees');
       }
       const data = await res.json();
       setEmployees(data);
@@ -67,7 +67,7 @@ export default function Home() {
       });
 
       if (!res.ok) {
-        throw new Error('No se pudo guardar el empleado');
+        throw new Error('Could not save the employee');
       }
 
       await fetchEmployees();
@@ -97,7 +97,7 @@ export default function Home() {
     try {
       const res = await fetch(`${API_URL}/employees/${id}`, { method: 'DELETE' });
       if (!res.ok) {
-        throw new Error('No se pudo eliminar el empleado');
+        throw new Error('Could not delete the employee');
       }
       await fetchEmployees();
       if (editingId === id) {
@@ -111,9 +111,9 @@ export default function Home() {
     }
   };
 
-  const handleInput = (
-    field: keyof EmployeePayload,
-    value: string | boolean,
+  const handleInput = <Field extends keyof EmployeePayload>(
+    field: Field,
+    value: EmployeePayload[Field],
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -121,9 +121,9 @@ export default function Home() {
   return (
     <main style={{ padding: '2rem', maxWidth: 900, margin: '0 auto' }}>
       <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0 }}>Gestor de Empleados</h1>
+        <h1 style={{ margin: 0 }}>Employee Manager</h1>
         <p style={{ marginTop: '0.25rem', color: '#475569' }}>
-          CRUD básico usando FastAPI y SQLite en el backend.
+          Basic CRUD using FastAPI and SQLite on the backend.
         </p>
       </header>
 
@@ -144,10 +144,10 @@ export default function Home() {
             boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
           }}
         >
-          <h2 style={{ marginTop: 0 }}>{editingId ? 'Editar' : 'Crear'} empleado</h2>
+          <h2 style={{ marginTop: 0 }}>{editingId ? 'Edit' : 'Create'} employee</h2>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             <label style={{ display: 'grid', gap: '0.35rem' }}>
-              <span>Nombre</span>
+              <span>First name</span>
               <input
                 required
                 type="text"
@@ -156,7 +156,7 @@ export default function Home() {
               />
             </label>
             <label style={{ display: 'grid', gap: '0.35rem' }}>
-              <span>Apellido</span>
+              <span>Last name</span>
               <input
                 required
                 type="text"
@@ -165,7 +165,7 @@ export default function Home() {
               />
             </label>
             <label style={{ display: 'grid', gap: '0.35rem' }}>
-              <span>Salario</span>
+              <span>Salary</span>
               <input
                 required
                 type="number"
@@ -175,7 +175,7 @@ export default function Home() {
               />
             </label>
             <label style={{ display: 'grid', gap: '0.35rem' }}>
-              <span>Dirección</span>
+              <span>Address</span>
               <input
                 required
                 type="text"
@@ -189,7 +189,7 @@ export default function Home() {
                 checked={form.in_vacation}
                 onChange={(e) => handleInput('in_vacation', e.target.checked)}
               />
-              <span>En vacaciones</span>
+              <span>On vacation</span>
             </label>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
               <button
@@ -204,7 +204,7 @@ export default function Home() {
                   cursor: 'pointer',
                 }}
               >
-                {editingId ? 'Actualizar' : 'Crear'}
+                {editingId ? 'Update' : 'Create'}
               </button>
               {editingId && (
                 <button
@@ -221,7 +221,7 @@ export default function Home() {
                     cursor: 'pointer',
                   }}
                 >
-                  Cancelar
+                  Cancel
                 </button>
               )}
             </div>
@@ -238,7 +238,7 @@ export default function Home() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ margin: 0 }}>Empleados</h2>
+            <h2 style={{ margin: 0 }}>Employees</h2>
             <button
               type="button"
               onClick={fetchEmployees}
@@ -251,22 +251,22 @@ export default function Home() {
                 cursor: 'pointer',
               }}
             >
-              Recargar
+              Reload
             </button>
           </div>
-          {loading && <p>Cargando...</p>}
-          {!loading && employees.length === 0 && <p>No hay empleados registrados.</p>}
+          {loading && <p>Loading...</p>}
+          {!loading && employees.length === 0 && <p>No employees registered.</p>}
           {!loading && employees.length > 0 && (
             <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
                   <th style={{ padding: '0.5rem' }}>ID</th>
-                  <th style={{ padding: '0.5rem' }}>Nombre</th>
-                  <th style={{ padding: '0.5rem' }}>Apellido</th>
-                  <th style={{ padding: '0.5rem' }}>Salario</th>
-                  <th style={{ padding: '0.5rem' }}>Dirección</th>
-                  <th style={{ padding: '0.5rem' }}>Vacaciones</th>
-                  <th style={{ padding: '0.5rem' }}>Acciones</th>
+                  <th style={{ padding: '0.5rem' }}>First name</th>
+                  <th style={{ padding: '0.5rem' }}>Last name</th>
+                  <th style={{ padding: '0.5rem' }}>Salary</th>
+                  <th style={{ padding: '0.5rem' }}>Address</th>
+                  <th style={{ padding: '0.5rem' }}>Vacation</th>
+                  <th style={{ padding: '0.5rem' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -278,7 +278,7 @@ export default function Home() {
                     <td style={{ padding: '0.5rem' }}>${employee.salary.toFixed(2)}</td>
                     <td style={{ padding: '0.5rem' }}>{employee.address}</td>
                     <td style={{ padding: '0.5rem' }}>
-                      {employee.in_vacation ? 'Sí' : 'No'}
+                      {employee.in_vacation ? 'Yes' : 'No'}
                     </td>
                     <td style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -293,7 +293,7 @@ export default function Home() {
                           cursor: 'pointer',
                         }}
                       >
-                        Editar
+                        Edit
                       </button>
                       <button
                         type="button"
@@ -307,7 +307,7 @@ export default function Home() {
                           cursor: 'pointer',
                         }}
                       >
-                        Eliminar
+                        Delete
                       </button>
                     </td>
                   </tr>
