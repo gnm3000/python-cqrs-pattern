@@ -1,4 +1,4 @@
-````markdown
+
 # Employee CRUD with FastAPI and Next.js
 
 This project implements a basic employee CRUD using FastAPI with SQLite as the backend and Next.js as the frontend.
