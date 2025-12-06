@@ -3,15 +3,15 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 
-def get_employees(db: Session):
+def get_employees(db: Session) -> list[models.Employee]:
     return db.query(models.Employee).order_by(models.Employee.id).all()
 
 
-def get_employee(db: Session, employee_id: int):
+def get_employee(db: Session, employee_id: int) -> models.Employee | None:
     return db.query(models.Employee).filter(models.Employee.id == employee_id).first()
 
 
-def create_employee(db: Session, employee: schemas.EmployeeCreate):
+def create_employee(db: Session, employee: schemas.EmployeeCreate) -> models.Employee:
     db_employee = models.Employee(**employee.dict())
     db.add(db_employee)
     db.commit()
@@ -19,7 +19,9 @@ def create_employee(db: Session, employee: schemas.EmployeeCreate):
     return db_employee
 
 
-def update_employee(db: Session, employee_id: int, payload: schemas.EmployeeUpdate):
+def update_employee(
+    db: Session, employee_id: int, payload: schemas.EmployeeUpdate
+) -> models.Employee | None:
     db_employee = get_employee(db, employee_id)
     if not db_employee:
         return None
@@ -30,7 +32,7 @@ def update_employee(db: Session, employee_id: int, payload: schemas.EmployeeUpda
     return db_employee
 
 
-def delete_employee(db: Session, employee_id: int):
+def delete_employee(db: Session, employee_id: int) -> models.Employee | None:
     db_employee = get_employee(db, employee_id)
     if not db_employee:
         return None
