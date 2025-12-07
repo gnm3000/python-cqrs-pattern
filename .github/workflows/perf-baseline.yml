@@ -1,0 +1,152 @@
+name: Performance Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: "PR number to comment with k6 results (optional)"
+        required: false
+        default: ""
+
+jobs:
+  k6-baseline:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: http://localhost:8000
+      RESULTS_DIR: performance/results
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and start backend
+        run: docker compose -f docker-compose.yml up -d --build backend
+
+      - name: Wait for API to be ready
+        run: |
+          for i in {1..40}; do
+            if curl -sf "${BASE_URL}/employees" > /dev/null; then
+              echo "API is ready"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Backend did not become ready in time" >&2
+          docker compose -f docker-compose.yml logs backend || true
+          exit 1
+
+      - name: Prepare results directory
+        run: mkdir -p "${RESULTS_DIR}"
+
+      - name: Run k6 read-heavy scenario
+        run: |
+          docker run --rm --network host \
+            -v "${{ github.workspace }}/performance:/scripts" \
+            grafana/k6 run /scripts/scenarios/monolith-read-heavy.js \
+            --summary-export=/scripts/results/monolith-read-heavy.json \
+            -e BASE_URL=${BASE_URL}
+
+      - name: Run k6 write-heavy scenario
+        run: |
+          docker run --rm --network host \
+            -v "${{ github.workspace }}/performance:/scripts" \
+            grafana/k6 run /scripts/scenarios/monolith-write-heavy.js \
+            --summary-export=/scripts/results/monolith-write-heavy.json \
+            -e BASE_URL=${BASE_URL}
+
+      - name: Run k6 mixed scenario
+        run: |
+          docker run --rm --network host \
+            -v "${{ github.workspace }}/performance:/scripts" \
+            grafana/k6 run /scripts/scenarios/monolith-mixed.js \
+            --summary-export=/scripts/results/monolith-mixed.json \
+            -e BASE_URL=${BASE_URL}
+
+      - name: Upload k6 summary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summary
+          path: performance/results/*.json
+
+      - name: Build Markdown report
+        id: report
+        run: |
+          python <<'PY'
+          import json
+          from pathlib import Path
+
+          results_dir = Path("performance/results")
+          scenarios = [
+              ("monolith-read-heavy", "Read heavy"),
+              ("monolith-write-heavy", "Write heavy"),
+              ("monolith-mixed", "Mixed"),
+          ]
+
+          lines = [
+              "| scenario | p50 (ms) | p95 (ms) | p99 (ms) | http_reqs |",
+              "| --- | --- | --- | --- | --- |",
+          ]
+
+          for slug, label in scenarios:
+              path = results_dir / f"{slug}.json"
+              if not path.exists():
+                  raise SystemExit(f"Missing results for {slug}: {path}")
+
+              data = json.loads(path.read_text())
+              duration = data["metrics"]["http_req_duration"]
+              http_reqs = data["metrics"]["http_reqs"]["count"]
+
+              def fmt(key: str) -> str:
+                  value = duration.get(key)
+                  return f"{value:.2f}" if value is not None else "n/a"
+
+              lines.append(
+                  f"| {label} | {fmt('med')} | {fmt('p(95)')} | {fmt('p(99)')} | {int(http_reqs)} |"
+              )
+
+          report = "\n".join(lines)
+          Path("performance/results/report.md").write_text(report)
+          PY
+
+          {
+            echo "report<<'EOF'" >> "$GITHUB_OUTPUT"
+            cat performance/results/report.md >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          }
+
+      - name: Job summary
+        run: |
+          echo "Performance Baseline (Monolith API)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          cat performance/results/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR
+        if: ${{ inputs.pr-number != '' }}
+        uses: actions/github-script@v7
+        env:
+          REPORT: ${{ steps.report.outputs.report }}
+          PR_NUMBER: ${{ inputs.pr-number }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt(process.env.PR_NUMBER || "", 10);
+            if (!prNumber) {
+              core.setFailed("PR number is required to post a comment.");
+            }
+
+            const body = [
+              "Performance Baseline Report (Monolith API)",
+              "",
+              process.env.REPORT,
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body,
+            });
+
+      - name: Stop containers
+        if: always()
+        run: docker compose -f docker-compose.yml down --volumes
