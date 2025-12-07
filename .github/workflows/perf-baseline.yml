@@ -42,34 +42,28 @@ jobs:
         run: |
           docker run --rm --network host \
             -v "${{ github.workspace }}/performance:/scripts" \
-            grafana/k6 sh -c "\
-              mkdir -p /scripts/results && \
-              k6 run /scripts/scenarios/monolith-read-heavy.js \
-              --summary-export=/scripts/results/monolith-read-heavy.json \
-              -e BASE_URL=${BASE_URL} \
-            "
+            -w /scripts \
+            grafana/k6 run /scripts/scenarios/monolith-read-heavy.js \
+            --summary-export=/scripts/results/monolith-read-heavy.json \
+            -e BASE_URL=${BASE_URL}
 
       - name: Run k6 write-heavy scenario
         run: |
           docker run --rm --network host \
             -v "${{ github.workspace }}/performance:/scripts" \
-            grafana/k6 sh -c "\
-              mkdir -p /scripts/results && \
-              k6 run /scripts/scenarios/monolith-write-heavy.js \
-              --summary-export=/scripts/results/monolith-write-heavy.json \
-              -e BASE_URL=${BASE_URL} \
-            "
+            -w /scripts \
+            grafana/k6 run /scripts/scenarios/monolith-write-heavy.js \
+            --summary-export=/scripts/results/monolith-write-heavy.json \
+            -e BASE_URL=${BASE_URL}
 
       - name: Run k6 mixed scenario
         run: |
           docker run --rm --network host \
             -v "${{ github.workspace }}/performance:/scripts" \
-            grafana/k6 sh -c "\
-              mkdir -p /scripts/results && \
-              k6 run /scripts/scenarios/monolith-mixed.js \
-              --summary-export=/scripts/results/monolith-mixed.json \
-              -e BASE_URL=${BASE_URL} \
-            "
+            -w /scripts \
+            grafana/k6 run /scripts/scenarios/monolith-mixed.js \
+            --summary-export=/scripts/results/monolith-mixed.json \
+            -e BASE_URL=${BASE_URL}
 
       - name: Upload k6 summary artifacts
         uses: actions/upload-artifact@v4
