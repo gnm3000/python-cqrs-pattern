@@ -1,0 +1,54 @@
+[project]
+name = "employee-backend"
+version = "0.1.0"
+description = "FastAPI CRUD backend for employees"
+readme = "../README.md"
+requires-python = ">=3.12"
+license = { file = "../LICENSE" }
+dependencies = [
+    "fastapi==0.111.0",
+    "uvicorn[standard]==0.30.1",
+    "SQLAlchemy==2.0.30",
+    "pydantic==1.10.19",
+]
+
+[dependency-groups]
+dev = [
+    "black==24.10.0",
+    "mypy==1.13.0",
+    "pytest==8.3.4",
+    "ruff==0.8.1",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+extend-exclude = ["data"]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "N",
+    "UP",
+    "S",
+    "B",
+]
+ignore = ["D", "B008"]
+per-file-ignores = {"tests/*" = ["S101"]}
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
