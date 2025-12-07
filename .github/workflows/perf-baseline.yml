@@ -44,9 +44,10 @@ jobs:
             -v "${{ github.workspace }}/performance:/scripts" \
             -v "${{ github.workspace }}/performance/results:/results" \
             -w /scripts \
-            grafana/k6 run /scripts/scenarios/monolith-read-heavy.js \
+            grafana/k6 run \
             --summary-export=/results/monolith-read-heavy.json \
-            -e BASE_URL=${BASE_URL}
+            -e BASE_URL=${BASE_URL} \
+            /scripts/scenarios/monolith-read-heavy.js
 
       - name: Run k6 write-heavy scenario
         run: |
@@ -54,9 +55,10 @@ jobs:
             -v "${{ github.workspace }}/performance:/scripts" \
             -v "${{ github.workspace }}/performance/results:/results" \
             -w /scripts \
-            grafana/k6 run /scripts/scenarios/monolith-write-heavy.js \
+            grafana/k6 run \
             --summary-export=/results/monolith-write-heavy.json \
-            -e BASE_URL=${BASE_URL}
+            -e BASE_URL=${BASE_URL} \
+            /scripts/scenarios/monolith-write-heavy.js
 
       - name: Run k6 mixed scenario
         run: |
@@ -64,9 +66,10 @@ jobs:
             -v "${{ github.workspace }}/performance:/scripts" \
             -v "${{ github.workspace }}/performance/results:/results" \
             -w /scripts \
-            grafana/k6 run /scripts/scenarios/monolith-mixed.js \
+            grafana/k6 run \
             --summary-export=/results/monolith-mixed.json \
-            -e BASE_URL=${BASE_URL}
+            -e BASE_URL=${BASE_URL} \
+            /scripts/scenarios/monolith-mixed.js
 
       - name: Upload k6 summary artifacts
         uses: actions/upload-artifact@v4
