@@ -14,7 +14,7 @@ def _serialize(value: Any) -> bytes:
 
 
 def _deserialize(raw: bytes) -> Any:
-    return pickle.loads(raw)
+    return pickle.loads(raw)  # noqa: S301 - cache only stores trusted, internal objects
 
 
 class RedisCacheProvider:

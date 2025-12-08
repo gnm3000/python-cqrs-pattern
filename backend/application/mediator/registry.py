@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from config import REDIS_DB, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
+from domain.events.invalidation_service import InvalidationService
 from infrastructure.cache.cache_provider import CacheBackend, CacheProvider
 from infrastructure.cache.redis_cache_provider import RedisCacheProvider
 from infrastructure.read_repository.employees_read_repository import EmployeesReadRepository
@@ -29,8 +31,6 @@ from application.queries.employees import (
     GetEmployeesQuery,
     GetEmployeesQueryHandler,
 )
-from config import REDIS_DB, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
-from domain.events.invalidation_service import InvalidationService
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def create_mediator(db: Session) -> Mediator:
         ],
         command_behaviors=[
             CommandInvalidationBehavior(invalidation_service),
-        ]
+        ],
     )
     read_repo = EmployeesReadRepository(db)
     mediator.register_handler(GetEmployeesQuery, GetEmployeesQueryHandler(read_repo).handle)

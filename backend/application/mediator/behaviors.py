@@ -5,8 +5,8 @@ import time
 from collections.abc import Callable
 from typing import Any, Protocol, runtime_checkable
 
-from infrastructure.cache.cache_provider import CacheBackend
 from domain.events.invalidation_service import InvalidationService
+from infrastructure.cache.cache_provider import CacheBackend
 
 from application.queries.base import IQuery
 
