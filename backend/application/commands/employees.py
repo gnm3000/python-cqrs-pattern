@@ -13,7 +13,7 @@ class CreateEmployeeCommand(ICommand):
     payload: schemas.EmployeeCreate
 
 
-class CreateEmployeeHandler(ICommandHandler[CreateEmployeeCommand, models.Employee]):
+class CreateEmployeeCommandHandler(ICommandHandler[CreateEmployeeCommand, models.Employee]):
     def __init__(self, db: Session):
         self.db = db
 
@@ -27,7 +27,7 @@ class UpdateEmployeeCommand(ICommand):
     payload: schemas.EmployeeUpdate
 
 
-class UpdateEmployeeHandler(ICommandHandler[UpdateEmployeeCommand, models.Employee | None]):
+class UpdateEmployeeCommandHandler(ICommandHandler[UpdateEmployeeCommand, models.Employee | None]):
     def __init__(self, db: Session):
         self.db = db
 
@@ -40,7 +40,7 @@ class DeleteEmployeeCommand(ICommand):
     employee_id: int
 
 
-class DeleteEmployeeHandler(ICommandHandler[DeleteEmployeeCommand, models.Employee | None]):
+class DeleteEmployeeCommandHandler(ICommandHandler[DeleteEmployeeCommand, models.Employee | None]):
     def __init__(self, db: Session):
         self.db = db
 
