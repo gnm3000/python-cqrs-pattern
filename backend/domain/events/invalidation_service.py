@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 
 from application.commands.employees import (
@@ -14,12 +15,18 @@ from infrastructure.cache.cache_provider import CacheBackend
 class InvalidationService:
     """Centralized cache invalidation keyed by Command type."""
 
-    def __init__(self, cache: CacheBackend):
+    def __init__(self, cache: CacheBackend, logger: logging.Logger | None = None):
         self.cache = cache
+        self.logger = logger or logging.getLogger("mediator.invalidation")
 
     def invalidate_for(self, command: object) -> None:
-        for key in self._keys_for(command):
+        keys = list(self._keys_for(command))
+        for key in keys:
             self.cache.delete(key)
+        if keys:
+            self.logger.info(
+                "cache_invalidate command=%s keys=%s", type(command).__name__, ",".join(keys)
+            )
 
     def _keys_for(self, command: object) -> Iterable[str]:
         if isinstance(command, CreateEmployeeCommand):
