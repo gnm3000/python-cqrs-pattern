@@ -10,7 +10,13 @@ from application.read_models.employees import EmployeeListDTO
 
 @dataclass
 class GetEmployeesQuery(IQuery):
-    pass
+    @property
+    def cache_key(self) -> str:
+        return "employees:list"
+
+    @property
+    def cache_ttl_seconds(self) -> int:
+        return 5
 
 
 class GetEmployeesQueryHandler(IQueryHandler[GetEmployeesQuery, list[EmployeeListDTO]]):
@@ -25,6 +31,14 @@ class GetEmployeesQueryHandler(IQueryHandler[GetEmployeesQuery, list[EmployeeLis
 @dataclass
 class GetEmployeeByIdQuery(IQuery):
     employee_id: int
+
+    @property
+    def cache_key(self) -> str:
+        return f"employees:{self.employee_id}"
+
+    @property
+    def cache_ttl_seconds(self) -> int:
+        return 5
 
 
 class GetEmployeeByIdQueryHandler(IQueryHandler[GetEmployeeByIdQuery, EmployeeListDTO | None]):

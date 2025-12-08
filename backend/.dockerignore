@@ -1,0 +1,21 @@
+# Docker build context hygiene for backend image
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+.env
+.env.*
+.DS_Store
+.git
+data/
+dist/
+build/
+cache/
+tmp/
+logs/

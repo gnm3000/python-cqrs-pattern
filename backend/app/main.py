@@ -1,9 +1,22 @@
+import logging
+
 from api.routes import employees
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from .dependencies import get_db
+
+# Structured logging (JSON-like) so behavior logs quedan parseables.
+handler = logging.StreamHandler()
+handler.setFormatter(
+    logging.Formatter(
+        fmt='{"timestamp":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","message":"%(message)s"}'
+    )
+)
+logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
+# Show per-query timings in console for the read-side behaviors (DEBUG for timing).
+logging.getLogger("mediator.timing").setLevel(logging.DEBUG)
 
 Base.metadata.create_all(bind=engine)
 

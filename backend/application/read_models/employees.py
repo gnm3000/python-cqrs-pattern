@@ -1,16 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
-
-
-class EmployeeRow(Protocol):
-    id: int
-    name: str
-    lastname: str
-    salary: float
-    address: str
-    in_vacation: bool
+from typing import Mapping, Any
 
 
 @dataclass(frozen=True)
@@ -25,13 +16,13 @@ class EmployeeListDTO:
     in_vacation: bool
 
 
-def map_to_employee_dto(row: EmployeeRow) -> EmployeeListDTO:
-    """Map a lightweight ORM row to the read-side DTO without leaking domain entities."""
+def map_to_employee_dto(row: Mapping[str, Any]) -> EmployeeListDTO:
+    """Map a lightweight SQL row to the read-side DTO without leaking domain entities."""
     return EmployeeListDTO(
-        id=row.id,
-        name=row.name,
-        lastname=row.lastname,
-        salary=row.salary,
-        address=row.address,
-        in_vacation=row.in_vacation,
+        id=row["id"],
+        name=row["name"],
+        lastname=row["lastname"],
+        salary=row["salary"],
+        address=row["address"],
+        in_vacation=row["in_vacation"],
     )
