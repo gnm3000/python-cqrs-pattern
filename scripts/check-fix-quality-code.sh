@@ -34,8 +34,8 @@ run black .
 echo "== Linting (ruff check --fix) =="
 run ruff check --fix .
 
-echo "== Type checking (mypy) =="
-run mypy app tests
+echo "== Type checking (pyrefly) =="
+run pyrefly check app tests
 
 echo "== Testing (pytest) =="
 run pytest
