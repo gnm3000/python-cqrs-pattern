@@ -7,6 +7,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from domain.events.invalidation_service import InvalidationService
 from infrastructure.cache.cache_provider import CacheBackend
+from infrastructure.outbox.outbox_processor import OutboxProcessor
 
 from application.queries.base import IQuery
 
@@ -34,8 +35,9 @@ class CacheableQuery(Protocol):
 class CacheBehavior:
     """Intercept cacheable queries to serve hot responses without hitting the DB."""
 
-    def __init__(self, cache: CacheBackend):
+    def __init__(self, cache: CacheBackend, logger: logging.Logger | None = None):
         self.cache = cache
+        self.logger = logger or logging.getLogger("mediator.cache")
 
     def handle(self, query: IQuery, next_handler: QueryHandler) -> Any:
         if not isinstance(query, CacheableQuery):
@@ -43,11 +45,15 @@ class CacheBehavior:
 
         cached = self.cache.get(query.cache_key)
         if cached is not None:
+            self.logger.info("cache_hit query=%s key=%s", type(query).__name__, query.cache_key)
             return cached
 
         result = next_handler(query)
         if query.cache_ttl_seconds > 0:
             self.cache.set(query.cache_key, result, query.cache_ttl_seconds)
+            self.logger.info(
+                "cache_set query=%s key=%s ttl=%s", type(query).__name__, query.cache_key, query.cache_ttl_seconds
+            )
         return result
 
 
@@ -94,10 +100,38 @@ class CommandBehavior(Protocol):
 class CommandInvalidationBehavior:
     """After a successful command, invalidate read-side cache entries."""
 
-    def __init__(self, invalidation_service: InvalidationService):
+    def __init__(self, invalidation_service: InvalidationService, logger: logging.Logger | None = None):
         self.invalidation_service = invalidation_service
+        self.logger = logger or logging.getLogger("mediator.invalidation")
 
     def handle(self, command: Any, next_handler: CommandHandler) -> Any:
         result = next_handler(command)
         self.invalidation_service.invalidate_for(command)
+        self.logger.info("cache_invalidate command=%s", type(command).__name__)
+        return result
+
+
+class OutboxDispatchBehavior:
+    """After the write transaction commits, fan out domain events to projectors."""
+
+    def __init__(self, processor: OutboxProcessor):
+        self.processor = processor
+
+    def handle(self, command: Any, next_handler: CommandHandler) -> Any:
+        result = next_handler(command)
+        self.processor.process_pending_events()
+        return result
+
+
+class CommandLoggingBehavior:
+    """Structured logging around commands to expose duration and outcomes."""
+
+    def __init__(self, logger: logging.Logger | None = None):
+        self.logger = logger or logging.getLogger("mediator.command")
+
+    def handle(self, command: Any, next_handler: CommandHandler) -> Any:
+        start = time.perf_counter()
+        result = next_handler(command)
+        duration_ms = (time.perf_counter() - start) * 1000
+        self.logger.info("command=%s duration_ms=%.2f", type(command).__name__, duration_ms)
         return result

@@ -19,13 +19,19 @@ class EmployeeListDTO:
     in_vacation: bool
 
 
-def map_to_employee_dto(row: Mapping[str, Any] | RowMapping) -> EmployeeListDTO:
-    """Map a lightweight SQL row to the read-side DTO without leaking domain entities."""
+def map_to_employee_dto(row: Mapping[str, Any] | RowMapping | Any) -> EmployeeListDTO:
+    """Map a row or ORM object to the read-side DTO without leaking domain entities."""
+
+    def _get(key: str) -> Any:
+        if isinstance(row, Mapping):
+            return row[key]
+        return getattr(row, key)
+
     return EmployeeListDTO(
-        id=row["id"],
-        name=row["name"],
-        lastname=row["lastname"],
-        salary=row["salary"],
-        address=row["address"],
-        in_vacation=row["in_vacation"],
+        id=_get("id"),
+        name=_get("name"),
+        lastname=_get("lastname"),
+        salary=_get("salary"),
+        address=_get("address"),
+        in_vacation=_get("in_vacation"),
     )
