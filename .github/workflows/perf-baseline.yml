@@ -22,6 +22,16 @@ jobs:
       - name: Build and start backend
         run: docker compose -f docker-compose.yml up -d --build backend
 
+      - name: Capture backend container id
+        run: |
+          BACKEND_CONTAINER_ID=$(docker compose -f docker-compose.yml ps -q backend)
+          if [ -z "$BACKEND_CONTAINER_ID" ]; then
+            echo "Backend container not found" >&2
+            exit 1
+          fi
+          echo "BACKEND_CONTAINER_ID=$BACKEND_CONTAINER_ID" >> "$GITHUB_ENV"
+          echo "Will reuse network namespace of $BACKEND_CONTAINER_ID"
+
       - name: Wait for API to be ready
         run: |
           for i in {1..40}; do
@@ -40,7 +50,7 @@ jobs:
 
       - name: Run k6 read-heavy scenario
         run: |
-          docker run --rm --network host \
+          docker run --rm --network container:${BACKEND_CONTAINER_ID} \
             -v "${{ github.workspace }}/performance:/scripts" \
             -v "${{ github.workspace }}/performance/results:/results" \
             -w /scripts \
@@ -51,7 +61,7 @@ jobs:
 
       - name: Run k6 write-heavy scenario
         run: |
-          docker run --rm --network host \
+          docker run --rm --network container:${BACKEND_CONTAINER_ID} \
             -v "${{ github.workspace }}/performance:/scripts" \
             -v "${{ github.workspace }}/performance/results:/results" \
             -w /scripts \
@@ -62,7 +72,7 @@ jobs:
 
       - name: Run k6 mixed scenario
         run: |
-          docker run --rm --network host \
+          docker run --rm --network container:${BACKEND_CONTAINER_ID} \
             -v "${{ github.workspace }}/performance:/scripts" \
             -v "${{ github.workspace }}/performance/results:/results" \
             -w /scripts \
@@ -70,6 +80,9 @@ jobs:
             --summary-export=/results/monolith-mixed.json \
             -e BASE_URL=${BASE_URL} \
             /scripts/scenarios/monolith-mixed.js
+
+      - name: List generated results
+        run: ls -l performance/results || true
 
       - name: Upload k6 summary artifacts
         uses: actions/upload-artifact@v4
