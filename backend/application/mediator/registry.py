@@ -22,8 +22,8 @@ from application.commands.employees import (
 )
 from application.mediator.behaviors import (
     CacheBehavior,
-    CommandLoggingBehavior,
     CommandInvalidationBehavior,
+    CommandLoggingBehavior,
     LoggingBehavior,
     OutboxDispatchBehavior,
     TimingBehavior,

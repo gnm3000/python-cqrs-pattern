@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 
 from application.commands.employees import (
@@ -9,7 +10,6 @@ from application.commands.employees import (
 )
 from application.read_models.ttl_config import EMPLOYEE_LIST_CACHE_KEY, employee_detail_cache_key
 from infrastructure.cache.cache_provider import CacheBackend
-import logging
 
 
 class InvalidationService:
@@ -24,7 +24,9 @@ class InvalidationService:
         for key in keys:
             self.cache.delete(key)
         if keys:
-            self.logger.info("cache_invalidate command=%s keys=%s", type(command).__name__, ",".join(keys))
+            self.logger.info(
+                "cache_invalidate command=%s keys=%s", type(command).__name__, ",".join(keys)
+            )
 
     def _keys_for(self, command: object) -> Iterable[str]:
         if isinstance(command, CreateEmployeeCommand):

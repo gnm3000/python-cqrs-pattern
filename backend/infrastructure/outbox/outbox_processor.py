@@ -54,7 +54,9 @@ class OutboxProcessor:
                 handler(event)
                 self.repository.mark_as_processed(record)
                 self.repository.commit()
-                self.logger.info("outbox_processed event_type=%s event_id=%s", record.event_type, record.id)
+                self.logger.info(
+                    "outbox_processed event_type=%s event_id=%s", record.event_type, record.id
+                )
             except Exception as exc:  # pragma: no cover - defensive guardrail
                 self.repository.rollback()
                 self.logger.error(

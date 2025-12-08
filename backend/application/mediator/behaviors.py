@@ -52,7 +52,10 @@ class CacheBehavior:
         if query.cache_ttl_seconds > 0:
             self.cache.set(query.cache_key, result, query.cache_ttl_seconds)
             self.logger.info(
-                "cache_set query=%s key=%s ttl=%s", type(query).__name__, query.cache_key, query.cache_ttl_seconds
+                "cache_set query=%s key=%s ttl=%s",
+                type(query).__name__,
+                query.cache_key,
+                query.cache_ttl_seconds,
             )
         return result
 
@@ -100,7 +103,9 @@ class CommandBehavior(Protocol):
 class CommandInvalidationBehavior:
     """After a successful command, invalidate read-side cache entries."""
 
-    def __init__(self, invalidation_service: InvalidationService, logger: logging.Logger | None = None):
+    def __init__(
+        self, invalidation_service: InvalidationService, logger: logging.Logger | None = None
+    ):
         self.invalidation_service = invalidation_service
         self.logger = logger or logging.getLogger("mediator.invalidation")
 
