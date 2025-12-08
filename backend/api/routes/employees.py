@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from app import models, schemas
 from app.dependencies import get_db
-from application.commands.employees import CreateEmployeeCommand, DeleteEmployeeCommand, UpdateEmployeeCommand
+from application.commands.employees import (
+    CreateEmployeeCommand,
+    DeleteEmployeeCommand,
+    UpdateEmployeeCommand,
+)
 from application.mediator.mediator import Mediator
 from application.mediator.registry import create_mediator
 from application.queries.employees import GetEmployeeByIdQuery, GetEmployeesQuery
