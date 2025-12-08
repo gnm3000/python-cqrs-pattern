@@ -5,11 +5,13 @@ import time
 from collections.abc import Callable
 from typing import Any, Protocol, runtime_checkable
 
-from infrastructure.cache.cache_provider import CacheProvider
+from infrastructure.cache.cache_provider import CacheBackend
+from domain.events.invalidation_service import InvalidationService
 
 from application.queries.base import IQuery
 
 QueryHandler = Callable[[IQuery], Any]
+CommandHandler = Callable[[Any], Any]
 
 
 class QueryBehavior(Protocol):
@@ -32,7 +34,7 @@ class CacheableQuery(Protocol):
 class CacheBehavior:
     """Intercept cacheable queries to serve hot responses without hitting the DB."""
 
-    def __init__(self, cache: CacheProvider):
+    def __init__(self, cache: CacheBackend):
         self.cache = cache
 
     def handle(self, query: IQuery, next_handler: QueryHandler) -> Any:
@@ -80,4 +82,22 @@ class TimingBehavior:
         result = next_handler(query)
         latency_ms = (time.perf_counter() - start) * 1000
         self.logger.debug("timing query=%s latency_ms=%.2f", type(query).__name__, latency_ms)
+        return result
+
+
+class CommandBehavior(Protocol):
+    """Middleware-style behavior that wraps command handlers."""
+
+    def handle(self, command: Any, next_handler: CommandHandler) -> Any: ...
+
+
+class CommandInvalidationBehavior:
+    """After a successful command, invalidate read-side cache entries."""
+
+    def __init__(self, invalidation_service: InvalidationService):
+        self.invalidation_service = invalidation_service
+
+    def handle(self, command: Any, next_handler: CommandHandler) -> Any:
+        result = next_handler(command)
+        self.invalidation_service.invalidate_for(command)
         return result

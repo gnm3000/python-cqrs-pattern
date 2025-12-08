@@ -6,17 +6,23 @@ from infrastructure.read_repository.employees_read_repository import EmployeesRe
 
 from application.queries.base import IQuery, IQueryHandler
 from application.read_models.employees import EmployeeListDTO
+from application.read_models.ttl_config import (
+    EMPLOYEE_LIST_CACHE_KEY,
+    TTL_EMPLOYEE_DETAIL,
+    TTL_EMPLOYEE_LIST,
+    employee_detail_cache_key,
+)
 
 
 @dataclass
 class GetEmployeesQuery(IQuery):
     @property
     def cache_key(self) -> str:
-        return "employees:list"
+        return EMPLOYEE_LIST_CACHE_KEY
 
     @property
     def cache_ttl_seconds(self) -> int:
-        return 5
+        return TTL_EMPLOYEE_LIST
 
 
 class GetEmployeesQueryHandler(IQueryHandler[GetEmployeesQuery, list[EmployeeListDTO]]):
@@ -34,11 +40,11 @@ class GetEmployeeByIdQuery(IQuery):
 
     @property
     def cache_key(self) -> str:
-        return f"employees:{self.employee_id}"
+        return employee_detail_cache_key(self.employee_id)
 
     @property
     def cache_ttl_seconds(self) -> int:
-        return 5
+        return TTL_EMPLOYEE_DETAIL
 
 
 class GetEmployeeByIdQueryHandler(IQueryHandler[GetEmployeeByIdQuery, EmployeeListDTO | None]):
