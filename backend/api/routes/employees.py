@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy.orm import Session
-
+from app import models, schemas
+from app.dependencies import get_db
 from application.commands.employees import (
     CreateEmployeeCommand,
     CreateEmployeeHandler,
@@ -18,8 +17,8 @@ from application.queries.employees import (
     GetEmployeesQuery,
     GetEmployeesQueryHandler,
 )
-from app import models, schemas
-from app.dependencies import get_db
+from fastapi import APIRouter, Depends, HTTPException, Response
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -40,10 +39,8 @@ def list_employees(mediator: Mediator = Depends(get_mediator)) -> list[models.Em
 
 
 @router.get("/{employee_id}", response_model=schemas.Employee)
-def read_employee(
-    employee_id: int, mediator: Mediator = Depends(get_mediator)
-) -> models.Employee:
-    employee = mediator.send(GetEmployeeQuery(employee_id))
+def read_employee(employee_id: int, mediator: Mediator = Depends(get_mediator)) -> models.Employee:
+    employee: models.Employee | None = mediator.send(GetEmployeeQuery(employee_id))
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     return employee
@@ -60,7 +57,7 @@ def create_new_employee(
 def update_existing_employee(
     employee_id: int, payload: schemas.EmployeeUpdate, mediator: Mediator = Depends(get_mediator)
 ) -> models.Employee:
-    employee = mediator.send(UpdateEmployeeCommand(employee_id, payload))
+    employee: models.Employee | None = mediator.send(UpdateEmployeeCommand(employee_id, payload))
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     return employee
@@ -68,7 +65,7 @@ def update_existing_employee(
 
 @router.delete("/{employee_id}", status_code=204, response_class=Response)
 def delete_employee(employee_id: int, mediator: Mediator = Depends(get_mediator)) -> Response:
-    employee = mediator.send(DeleteEmployeeCommand(employee_id))
+    employee: models.Employee | None = mediator.send(DeleteEmployeeCommand(employee_id))
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     return Response(status_code=204)

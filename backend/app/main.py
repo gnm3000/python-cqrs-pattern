@@ -1,9 +1,9 @@
+from api.routes import employees
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from .dependencies import get_db
-from api.routes import employees
 
 Base.metadata.create_all(bind=engine)
 
@@ -18,3 +18,5 @@ app.add_middleware(
 )
 
 app.include_router(employees.router)
+# Re-export get_db so tests and routers can import from app.main
+__all__ = ["app", "get_db"]

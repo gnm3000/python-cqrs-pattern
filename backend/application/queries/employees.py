@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app import crud, models
 from sqlalchemy.orm import Session
 
 from application.queries.base import IQuery, IQueryHandler
-from app import crud, models
 
 
 @dataclass

@@ -7,7 +7,7 @@ QueryType = TypeVar("QueryType", bound="IQuery")
 ResultType = TypeVar("ResultType")
 
 
-class IQuery(ABC):
+class IQuery:
     """Marker interface for queries."""
 
     pass

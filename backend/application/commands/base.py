@@ -7,7 +7,7 @@ CommandType = TypeVar("CommandType", bound="ICommand")
 ResultType = TypeVar("ResultType")
 
 
-class ICommand(ABC):
+class ICommand:
     """Marker interface for commands."""
 
     pass
