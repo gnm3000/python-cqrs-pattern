@@ -4,17 +4,22 @@ from collections.abc import Callable
 from typing import Any
 
 from application.commands.base import ICommand
-from application.mediator.behaviors import QueryBehavior
+from application.mediator.behaviors import CommandBehavior, QueryBehavior
 from application.queries.base import IQuery
 
 
 class Mediator:
     """Minimal mediator that routes commands and queries to their handlers."""
 
-    def __init__(self, behaviors: list[QueryBehavior] | None = None) -> None:
+    def __init__(
+        self,
+        behaviors: list[QueryBehavior] | None = None,
+        command_behaviors: list[CommandBehavior] | None = None,
+    ) -> None:
         self._query_handlers: dict[type[Any], Callable[[Any], Any]] = {}
         self._command_handlers: dict[type[Any], Callable[[Any], Any]] = {}
         self._behaviors = behaviors or []
+        self._command_behaviors = command_behaviors or []
 
     def register_handler(self, message_type: type[Any], handler: Callable[[Any], Any]) -> None:
         if issubclass(message_type, IQuery):
@@ -36,7 +41,14 @@ class Mediator:
         handler = self._command_handlers.get(type(command))
         if handler is None:
             raise ValueError(f"No handler registered for {type(command).__name__}")
-        return handler(command)
+
+        def execute_pipeline(index: int, current_command: ICommand) -> Any:
+            if index >= len(self._command_behaviors):
+                return handler(current_command)
+            behavior = self._command_behaviors[index]
+            return behavior.handle(current_command, lambda c: execute_pipeline(index + 1, c))
+
+        return execute_pipeline(0, command)
 
     def _send_query(self, query: IQuery) -> Any:
         handler = self._query_handlers.get(type(query))
