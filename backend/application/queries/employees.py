@@ -22,13 +22,13 @@ class GetEmployeesQueryHandler(IQueryHandler[GetEmployeesQuery, list[models.Empl
 
 
 @dataclass
-class GetEmployeeQuery(IQuery):
+class GetEmployeeByIdQuery(IQuery):
     employee_id: int
 
 
-class GetEmployeeQueryHandler(IQueryHandler[GetEmployeeQuery, models.Employee | None]):
+class GetEmployeeByIdQueryHandler(IQueryHandler[GetEmployeeByIdQuery, models.Employee | None]):
     def __init__(self, db: Session):
         self.db = db
 
-    def handle(self, query: GetEmployeeQuery) -> models.Employee | None:
+    def handle(self, query: GetEmployeeByIdQuery) -> models.Employee | None:
         return crud.get_employee(self.db, query.employee_id)
