@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from infrastructure.cache.cache_provider import CacheProvider
+from infrastructure.read_repository.employees_read_repository import EmployeesReadRepository
+from sqlalchemy.orm import Session
+
 from application.commands.employees import (
     CreateEmployeeCommand,
     CreateEmployeeCommandHandler,
@@ -16,9 +20,6 @@ from application.queries.employees import (
     GetEmployeesQuery,
     GetEmployeesQueryHandler,
 )
-from infrastructure.cache.cache_provider import CacheProvider
-from infrastructure.read_repository.employees_read_repository import EmployeesReadRepository
-from sqlalchemy.orm import Session
 
 
 def create_mediator(db: Session) -> Mediator:

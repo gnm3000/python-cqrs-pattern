@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from application.read_models.employees import EmployeeListDTO, map_to_employee_dto
 from sqlalchemy import text
+from sqlalchemy.engine import RowMapping
 from sqlalchemy.orm import Session
 
 
@@ -22,7 +25,7 @@ class EmployeesReadRepository:
                 """
             )
         )
-        rows = result.mappings().all()
+        rows: Sequence[RowMapping] = result.mappings().all()
         return [map_to_employee_dto(row) for row in rows]
 
     def get_by_id(self, employee_id: int) -> EmployeeListDTO | None:
@@ -37,7 +40,7 @@ class EmployeesReadRepository:
             ),
             {"employee_id": employee_id},
         )
-        employee = result.mappings().first()
+        employee: RowMapping | None = result.mappings().first()
         if not employee:
             return None
         return map_to_employee_dto(employee)

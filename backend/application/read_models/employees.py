@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping, Any
+from typing import Any
+
+from sqlalchemy.engine import RowMapping
 
 
 @dataclass(frozen=True)
@@ -16,7 +19,7 @@ class EmployeeListDTO:
     in_vacation: bool
 
 
-def map_to_employee_dto(row: Mapping[str, Any]) -> EmployeeListDTO:
+def map_to_employee_dto(row: Mapping[str, Any] | RowMapping) -> EmployeeListDTO:
     """Map a lightweight SQL row to the read-side DTO without leaking domain entities."""
     return EmployeeListDTO(
         id=row["id"],

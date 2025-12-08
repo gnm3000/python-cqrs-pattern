@@ -5,8 +5,9 @@ import time
 from collections.abc import Callable
 from typing import Any, Protocol, runtime_checkable
 
-from application.queries.base import IQuery
 from infrastructure.cache.cache_provider import CacheProvider
+
+from application.queries.base import IQuery
 
 QueryHandler = Callable[[IQuery], Any]
 
@@ -14,8 +15,7 @@ QueryHandler = Callable[[IQuery], Any]
 class QueryBehavior(Protocol):
     """Middleware-style behavior that wraps query handlers."""
 
-    def handle(self, query: IQuery, next_handler: QueryHandler) -> Any:
-        ...
+    def handle(self, query: IQuery, next_handler: QueryHandler) -> Any: ...
 
 
 @runtime_checkable
@@ -23,12 +23,10 @@ class CacheableQuery(Protocol):
     """Queries that can be cached expose a key and TTL."""
 
     @property
-    def cache_key(self) -> str:
-        ...
+    def cache_key(self) -> str: ...
 
     @property
-    def cache_ttl_seconds(self) -> int:
-        ...
+    def cache_ttl_seconds(self) -> int: ...
 
 
 class CacheBehavior:
