@@ -58,7 +58,7 @@ The backend is not a traditional monolithic CRUD: it separates **commands** (wri
 ### Write flow (Command)
 ```mermaid
 flowchart LR
-    Client --> API[FastAPI route /employees (POST, PUT, DELETE)]
+    Client --> API["FastAPI route /employees (POST, PUT, DELETE)"]
     API --> Mediator
     Mediator --> CmdHandler[Command Handler]
     CmdHandler --> DB[(DB write model)]
