@@ -1,7 +1,7 @@
 
-# Employee CRUD with FastAPI and Next.js
+# Employee CRUD (CQRS + DDD) with FastAPI and Next.js
 
-This project implements a basic employee CRUD using FastAPI with SQLite as the backend and Next.js as the frontend.
+This project demonstrates a small CQRS/DDD implementation: FastAPI + SQLAlchemy on the backend, Next.js on the frontend, Redis (optional) for caching, and an outbox-driven projector to keep the read model up to date.
 
 ## Structure
 
@@ -42,52 +42,66 @@ The `NEXT_PUBLIC_API_URL` variable controls the API endpoint and defaults to `ht
 
 ---
 
-## Architectural Note: Traditional CRUD vs CQRS
+## Arquitectura: CQRS + Mediator + Outbox
 
-This project follows a **traditional CRUD architecture**, where **reads and writes are handled by the same models, database schema, handlers, and API routes**. This monolithic approach is simple and works for small systems, but introduces structural limitations:
+El backend no es CRUD monolítico tradicional: separa **commands** (escrituras) de **queries** (lecturas), usa un **mediator** para enrutar mensajes y un **read model** proyectado con outbox para que las lecturas sean ligeras y cacheables.
 
-### 1. No separation between Commands and Queries
+### Componentes principales (DDD-lite)
+- **Dominio / Aggregate raíz**: `app.models.Employee` y sus invariantes se tocan en los handlers de commands.
+- **Eventos de dominio**: `domain.events.employees` modela `EmployeeCreated/Updated/Deleted` y se publican en la outbox.
+- **Command handlers**: `application/commands/...` mutan el modelo de escritura y registran eventos en la outbox.
+- **Projectors (read side)**: `application/read_models/projectors/...` consumen eventos y actualizan la tabla `read_employees`.
+- **DTOs de lectura**: `application/read_models/employees.py` define `EmployeeListDTO` (TypedDict) para exponer lecturas sin filtrar entidades.
+- **Mediator**: `application/mediator/...` enruta comandos/queries y aplica behaviors (logging, cache, invalidación, dispatch de outbox).
+- **Cache + invalidación**: `CacheBehavior` sirve lecturas desde Redis/memoria; `InvalidationService` limpia claves cuando hay writes.
 
-CRUD couples:
-
-* **State-changing operations** (create, update, delete)
-* **Read-only operations** (list, get)
-
-This single pipeline forces all operations to share the same data model and the same database workload, creating contention.
-
-### 2. Scalability Limitations
-
-Because reads and writes go through the same path:
-
-* You cannot scale read-heavy and write-heavy workloads independently.
-* Caching becomes harder since write operations invalidate the same model used for queries.
-* Optimizing for analytical queries or projections forces changes in the core domain model.
-
-### 3. Coupled Domain and Persistence Models
-
-In CRUD:
-
-* The API layer, domain logic, and database schema tend to mirror each other.
-* Any schema change affects the whole stack.
-* There is no space for **read-optimized models**, **denormalized views**, or **event-driven projections**.
-
-### 4. CQRS Advantage (Conceptual Contrast)
-
-CQRS (Command Query Responsibility Segregation) splits the system into two logical flows:
-
-* **Commands**: mutate state, validated by domain rules.
-* **Queries**: return data, optimized for reading, often through specialized view models.
-
-This separation enables:
-
-* Independent scaling of read/write workloads.
-* Read models optimized for UX without affecting domain consistency.
-* Use of asynchronous projections and event sourcing.
-* Cleaner domain logic, enforcing invariants on the command side only.
-
----
-
-This repository keeps the implementation intentionally simple—ideal for learning FastAPI + Next.js—but also illustrates why CRUD architecture becomes rigid as systems grow. Adding CQRS later would require splitting handlers, models, persistence flows, and creating independent read projections.
-
+### Flujo de escritura (Command)
+```mermaid
+flowchart LR
+    Client --> API[FastAPI route /employees POST|PUT|DELETE]
+    API --> Mediator
+    Mediator --> CmdHandler[Command Handler]
+    CmdHandler --> DB[(DB write model)]
+    CmdHandler --> Outbox[(Outbox table)]
+    Outbox -->|process| Projector
+    Projector --> ReadDB[(DB read model)]
+    CmdHandler --> Invalidator[Cache invalidation]
 ```
+
+### Flujo de lectura (Query)
+```mermaid
+flowchart LR
+    Client --> API[FastAPI route /employees GET]
+    API --> Mediator
+    Mediator --> CacheBehavior{Cache hit?}
+    CacheBehavior -->|yes| Cache[Redis/memory]
+    CacheBehavior -->|no| QueryHandler
+    QueryHandler --> ReadRepo[Read repository]
+    ReadRepo --> ReadDB[(DB read model)]
+    ReadRepo --> DTO[EmployeeListDTO]
+    DTO --> Cache
+    Cache --> API
 ```
+
+### Por qué DTO en lecturas
+- Evita filtrar entidades SQLAlchemy, minimiza payload y facilita serialización/caching (dict plano).
+- Permite evolucionar el read model (proyecciones, desnormalización) sin tocar el dominio de escritura.
+- Encaja con CQRS: commands usan modelos de dominio; queries usan DTOs de lectura.
+
+### Notas de DDD aplicadas
+- **Ubiquitous Language**: conceptos Employee, Command, Query, Event, Projector, DTO.
+- **Bounded Context**: un contexto simple de empleados; read model está desacoplado pero en el mismo contexto.
+- **Eventos como contrato**: los projectors dependen solo de los eventos, no de los command handlers.
+- **Infraestructura separada**: repositorios de lectura/escritura, cache, outbox y mediator viven en módulos independientes, permitiendo cambiar implementaciones.
+
+### Capas relevantes
+- `api/routes/...`: expone HTTP y transforma requests en commands/queries.
+- `application/...`: casos de uso (command/query handlers), mediator y behaviors cross-cutting.
+- `domain/...`: eventos y lógica de invalidación de cache asociada a comandos.
+- `infrastructure/...`: persistencia (read/write repo), cache providers, outbox.
+- `app/schemas.py`: contratos Pydantic para la API (entrada/salida).
+
+### Ciclo de cache/invalidation
+- Lecturas cacheadas con TTL corto (`application/read_models/ttl_config.py`).
+- Commands disparan `CommandInvalidationBehavior` que borra claves afectadas (lista y detalle).
+- Después de invalidar, `OutboxDispatchBehavior` procesa eventos y actualiza el read model; la siguiente lectura se recalienta en cache.
