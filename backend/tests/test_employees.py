@@ -66,12 +66,29 @@ def test_full_employee_crud_flow(client: TestClient) -> None:
     assert list_response.status_code == 200
     employees = list_response.json()
     assert len(employees) == 1
+    first_etag = list_response.headers.get("etag")
+    assert first_etag
+
+    # Conditional GET should avoid payload when data is unchanged
+    fresh_not_modified = client.get("/employees", headers={"If-None-Match": str(first_etag)})
+    assert fresh_not_modified.status_code == 304
+    assert fresh_not_modified.text == ""
 
     update_payload = {**payload, "in_vacation": True}
     update_response = client.put("/employees/1", json=update_payload)
     assert update_response.status_code == 200
     updated = update_response.json()
     assert updated["in_vacation"] is True
+
+    fresh_response = client.get("/employees")
+    assert fresh_response.status_code == 200
+    fresh_etag = fresh_response.headers.get("etag")
+    assert fresh_etag
+    assert fresh_etag != first_etag
+
+    refreshed_not_modified = client.get("/employees", headers={"If-None-Match": str(fresh_etag)})
+    assert refreshed_not_modified.status_code == 304
+    assert refreshed_not_modified.text == ""
 
     delete_response = client.delete("/employees/1")
     assert delete_response.status_code == 204

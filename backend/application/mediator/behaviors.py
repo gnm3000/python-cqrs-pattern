@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Callable
+from dataclasses import fields, is_dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from domain.events.invalidation_service import InvalidationService
@@ -48,16 +49,29 @@ class CacheBehavior:
             self.logger.info("cache_hit query=%s key=%s", type(query).__name__, query.cache_key)
             return cached
 
-        result = next_handler(query)
+        result = self._normalize(next_handler(query))
         if query.cache_ttl_seconds > 0:
             self.cache.set(query.cache_key, result, query.cache_ttl_seconds)
             self.logger.info(
-                "cache_set query=%s key=%s ttl=%s",
+                "cache_set query=%s key=%s ttl=%s bytes=%s",
                 type(query).__name__,
                 query.cache_key,
                 query.cache_ttl_seconds,
+                getattr(self.cache.metrics, "dto_size_bytes", 0),
             )
         return result
+
+    def _normalize(self, value: Any) -> Any:
+        """Convert dataclasses and nested collections into msgpack-friendly shapes."""
+        if is_dataclass(value):
+            return {
+                field.name: self._normalize(getattr(value, field.name)) for field in fields(value)
+            }
+        if isinstance(value, dict):
+            return {k: self._normalize(v) for k, v in value.items()}
+        if isinstance(value, list | tuple):
+            return [self._normalize(item) for item in value]
+        return value
 
 
 class LoggingBehavior:

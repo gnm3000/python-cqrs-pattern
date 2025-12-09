@@ -13,12 +13,34 @@ class EmployeesReadRepository:
 
     def get_all(self) -> list[EmployeeListDTO]:
         """Return lightweight employees for listings using the read-model table."""
-        employees = self.db.query(ReadEmployee).order_by(ReadEmployee.id).all()
+        employees = (
+            self.db.query(
+                ReadEmployee.id,
+                ReadEmployee.name,
+                ReadEmployee.lastname,
+                ReadEmployee.salary,
+                ReadEmployee.address,
+                ReadEmployee.in_vacation,
+            )
+            .order_by(ReadEmployee.id)
+            .all()
+        )
         return [map_to_employee_dto(employee) for employee in employees]
 
     def get_by_id(self, employee_id: int) -> EmployeeListDTO | None:
         """Return a single employee DTO or None; mirrors the API payload shape."""
-        employee = self.db.query(ReadEmployee).filter(ReadEmployee.id == employee_id).first()
+        employee = (
+            self.db.query(
+                ReadEmployee.id,
+                ReadEmployee.name,
+                ReadEmployee.lastname,
+                ReadEmployee.salary,
+                ReadEmployee.address,
+                ReadEmployee.in_vacation,
+            )
+            .filter(ReadEmployee.id == employee_id)
+            .first()
+        )
         if not employee:
             return None
         return map_to_employee_dto(employee)

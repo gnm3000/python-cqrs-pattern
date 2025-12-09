@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypedDict
 
 from sqlalchemy.engine import RowMapping
 
 
-@dataclass(frozen=True)
-class EmployeeListDTO:
-    """Flattened read model returned to the API for employee list/detail queries."""
+class EmployeeListDTO(TypedDict):
+    """Lean, serializable DTO used for read-side responses and caching."""
 
     id: int
     name: str
@@ -20,7 +18,7 @@ class EmployeeListDTO:
 
 
 def map_to_employee_dto(row: Mapping[str, Any] | RowMapping | Any) -> EmployeeListDTO:
-    """Map a row or ORM object to the read-side DTO without leaking domain entities."""
+    """Map a row or ORM object to the lean DTO without leaking domain entities."""
 
     def _get(key: str) -> Any:
         if isinstance(row, Mapping):
@@ -28,10 +26,10 @@ def map_to_employee_dto(row: Mapping[str, Any] | RowMapping | Any) -> EmployeeLi
         return getattr(row, key)
 
     return EmployeeListDTO(
-        id=_get("id"),
-        name=_get("name"),
-        lastname=_get("lastname"),
-        salary=_get("salary"),
-        address=_get("address"),
-        in_vacation=_get("in_vacation"),
+        id=int(_get("id")),
+        name=str(_get("name")),
+        lastname=str(_get("lastname")),
+        salary=float(_get("salary")),
+        address=str(_get("address")),
+        in_vacation=bool(_get("in_vacation")),
     )

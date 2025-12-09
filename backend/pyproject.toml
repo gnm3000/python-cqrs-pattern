@@ -11,6 +11,7 @@ dependencies = [
     "sqlalchemy==2.0.30",
     "pydantic==1.10.19",
     "redis==5.0.8",
+    "msgpack>=1.1.2",
 ]
 
 [dependency-groups]
