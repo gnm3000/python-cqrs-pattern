@@ -42,20 +42,20 @@ The `NEXT_PUBLIC_API_URL` variable controls the API endpoint and defaults to `ht
 
 ---
 
-## Arquitectura: CQRS + Mediator + Outbox
+## Architecture: CQRS + Mediator + Outbox
 
-El backend no es CRUD monolítico tradicional: separa **commands** (escrituras) de **queries** (lecturas), usa un **mediator** para enrutar mensajes y un **read model** proyectado con outbox para que las lecturas sean ligeras y cacheables.
+The backend is not a traditional monolithic CRUD: it separates **commands** (writes) from **queries** (reads), uses a **mediator** to route messages, and keeps a projected **read model** via outbox so reads stay lightweight and cache-friendly.
 
-### Componentes principales (DDD-lite)
-- **Dominio / Aggregate raíz**: `app.models.Employee` y sus invariantes se tocan en los handlers de commands.
-- **Eventos de dominio**: `domain.events.employees` modela `EmployeeCreated/Updated/Deleted` y se publican en la outbox.
-- **Command handlers**: `application/commands/...` mutan el modelo de escritura y registran eventos en la outbox.
-- **Projectors (read side)**: `application/read_models/projectors/...` consumen eventos y actualizan la tabla `read_employees`.
-- **DTOs de lectura**: `application/read_models/employees.py` define `EmployeeListDTO` (TypedDict) para exponer lecturas sin filtrar entidades.
-- **Mediator**: `application/mediator/...` enruta comandos/queries y aplica behaviors (logging, cache, invalidación, dispatch de outbox).
-- **Cache + invalidación**: `CacheBehavior` sirve lecturas desde Redis/memoria; `InvalidationService` limpia claves cuando hay writes.
+### Key components (DDD-lite)
+- **Domain / Aggregate root**: `app.models.Employee`; invariants are enforced in command handlers.
+- **Domain events**: `domain.events.employees` models `EmployeeCreated/Updated/Deleted` and pushes them to the outbox.
+- **Command handlers**: `application/commands/...` mutate the write model and enqueue events.
+- **Projectors (read side)**: `application/read_models/projectors/...` consume events and update the `read_employees` table.
+- **Read DTOs**: `application/read_models/employees.py` defines `EmployeeListDTO` (TypedDict) to expose reads without leaking entities.
+- **Mediator**: `application/mediator/...` routes commands/queries and applies behaviors (logging, cache, invalidation, outbox dispatch).
+- **Cache + invalidation**: `CacheBehavior` serves reads from Redis/memory; `InvalidationService` removes keys when writes happen.
 
-### Flujo de escritura (Command)
+### Write flow (Command)
 ```mermaid
 flowchart LR
     Client --> API[FastAPI route /employees POST|PUT|DELETE]
@@ -68,7 +68,7 @@ flowchart LR
     CmdHandler --> Invalidator[Cache invalidation]
 ```
 
-### Flujo de lectura (Query)
+### Read flow (Query)
 ```mermaid
 flowchart LR
     Client --> API[FastAPI route /employees GET]
@@ -83,25 +83,25 @@ flowchart LR
     Cache --> API
 ```
 
-### Por qué DTO en lecturas
-- Evita filtrar entidades SQLAlchemy, minimiza payload y facilita serialización/caching (dict plano).
-- Permite evolucionar el read model (proyecciones, desnormalización) sin tocar el dominio de escritura.
-- Encaja con CQRS: commands usan modelos de dominio; queries usan DTOs de lectura.
+### Why DTOs on reads
+- Avoid leaking SQLAlchemy entities; smaller payload, easier serialization/caching (plain dict).
+- Let the read model evolve (projections, denormalization) without touching the write domain.
+- Fits CQRS: commands use domain models; queries use read DTOs.
 
-### Notas de DDD aplicadas
-- **Ubiquitous Language**: conceptos Employee, Command, Query, Event, Projector, DTO.
-- **Bounded Context**: un contexto simple de empleados; read model está desacoplado pero en el mismo contexto.
-- **Eventos como contrato**: los projectors dependen solo de los eventos, no de los command handlers.
-- **Infraestructura separada**: repositorios de lectura/escritura, cache, outbox y mediator viven en módulos independientes, permitiendo cambiar implementaciones.
+### DDD notes applied
+- **Ubiquitous Language**: Employee, Command, Query, Event, Projector, DTO.
+- **Bounded Context**: a simple employee context; the read model is decoupled but lives in the same context.
+- **Events as contract**: projectors depend only on events, not on command handlers.
+- **Separated infrastructure**: read/write repositories, cache, outbox, and mediator live in separate modules so implementations can change freely.
 
-### Capas relevantes
-- `api/routes/...`: expone HTTP y transforma requests en commands/queries.
-- `application/...`: casos de uso (command/query handlers), mediator y behaviors cross-cutting.
-- `domain/...`: eventos y lógica de invalidación de cache asociada a comandos.
-- `infrastructure/...`: persistencia (read/write repo), cache providers, outbox.
-- `app/schemas.py`: contratos Pydantic para la API (entrada/salida).
+### Relevant layers
+- `api/routes/...`: exposes HTTP and turns requests into commands/queries.
+- `application/...`: use cases (command/query handlers), mediator, and cross-cutting behaviors.
+- `domain/...`: events and cache invalidation logic tied to commands.
+- `infrastructure/...`: persistence (read/write repos), cache providers, outbox.
+- `app/schemas.py`: Pydantic contracts for API input/output.
 
-### Ciclo de cache/invalidation
-- Lecturas cacheadas con TTL corto (`application/read_models/ttl_config.py`).
-- Commands disparan `CommandInvalidationBehavior` que borra claves afectadas (lista y detalle).
-- Después de invalidar, `OutboxDispatchBehavior` procesa eventos y actualiza el read model; la siguiente lectura se recalienta en cache.
+### Cache/invalidations lifecycle
+- Reads are cached with short TTLs (`application/read_models/ttl_config.py`).
+- Commands trigger `CommandInvalidationBehavior` to delete affected keys (list and detail).
+- After invalidation, `OutboxDispatchBehavior` processes events and updates the read model; the next read warms the cache again.
